@@ -15,6 +15,8 @@ import { Move } from './interface/game.interface';
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean),
+    methods: ['GET', 'POST'],
+    credentials: false,
   },
 })
 export class GameGateway {
