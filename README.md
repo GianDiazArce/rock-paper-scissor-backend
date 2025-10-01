@@ -1,98 +1,109 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Rock–Paper–Scissors Backend (NestJS + Socket.IO)
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend para el juego **Piedra, Papel o Tijera** con **multijugador online** vía **WebSockets (Socket.IO)** y emparejamiento **aleatorio** (matchmaking).  
+Cliente de referencia: el repo del frontend (CRA/Vite) que consume este backend.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## ✨ Features
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- Matchmaking random (cola + empareja de 2 en 2).
+- Rondas simultáneas: el servidor espera ambas jugadas y emite resultado.
+- Eventos de rematch, cancelación de cola y manejo de desconexión.
+- CORS configurable por variables de entorno.
+- Listo para deploy en **Render** / **Railway** (HTTPS + WSS).
 
-## Project setup
+---
 
-```bash
-$ npm install
+## 🧱 Stack
+
+- **NestJS 11** (`@nestjs/websockets`, `@nestjs/platform-socket.io`)
+- **Socket.IO 4**
+- **TypeScript**
+- (Opcional futuro) Redis Adapter para escalar a múltiples instancias.
+
+---
+
+## 📁 Estructura (resumen)
+
+```
+src/
+├─ app.module.ts
+├─ main.ts
+└─ game/
+   ├─ game.module.ts
+   ├─ game.gateway.ts     # WebSocket gateway (eventos y CORS del WS)
+   └─ game.service.ts     # Lógica: cola, partidas, jugadas, juez
+
 ```
 
-## Compile and run the project
+---
+
+## ⚙️ Variables de entorno
+
+Crea un archivo `.env` en la raíz (mismo nivel que `package.json`):
+
+| Variable       | Ejemplo / Valor        | Descripción |
+|----------------|------------------------|-------------|
+| `PORT`         | `3001`                 | Puerto HTTP/WS del backend. En Render se sobreescribe. |
+| `NODE_ENV`     | `development`          | Entorno. |
+| `WS_ORIGINS`   | `http://localhost:3000,http://localhost:5173,https://giandiazarce.github.io` | Lista separada por comas con orígenes permitidos para CORS (frontend). **Importante en prod**. |
+
+> En **Render**, no fijes `PORT`; Render lo inyecta. Tu app debe leer `process.env.PORT`.
+
+---
+
+## 🚀 Arranque local
 
 ```bash
-# development
-$ npm run start
+# 1) instalar deps
+npm install
 
-# watch mode
-$ npm run start:dev
+# 2) .env (ejemplo)
+echo PORT=3001 > .env
+echo NODE_ENV=development >> .env
+echo WS_ORIGINS=http://localhost:3000,http://localhost:5173 >> .env
 
-# production mode
-$ npm run start:prod
+# 3) dev
+npm run start:dev
+# App en http://localhost:3001
 ```
 
-## Run tests
-
+#### Test rápido (opcional) con cliente Node
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm i -D tsx socket.io-client
+# crea tools/socket-test.ts con el script de prueba y ejecuta:
+npx tsx tools/socket-test.ts
 ```
+---
+## 🔌 API de WebSocket (eventos)
 
-## Deployment
+## Cliente → Servidor
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- join_queue : entra a la cola de emparejamiento.
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+- leave_queue : sale de la cola.
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+- pick_move { move: 'rock'|'paper'|'scissors' } : envía jugada.
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+- rematch : solicita revancha en la misma sala.
 
-## Resources
+## Servidor → Cliente
 
-Check out a few resources that may come in handy when working with NestJS:
+- queue_joined : confirmación al unirse a cola.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+- queue_left : confirmación al salir de cola.
 
-## Support
+- match_found { matchId, players } : partida creada y lista.
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- waiting_opponent : se registró tu jugada; falta la del rival.
 
-## Stay in touch
+- round_result { a:{socketId,move}, b:{socketId,move}, result:'a'|'b'|'draw' } : resultado de la ronda.
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+- rematch_ready : ambos pueden volver a jugar.
 
-## License
+- opponent_left : tu rival se desconectó.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- error_msg : mensaje de error (p. ej. invalid_move).
+
+ Anti-cheat básico: el server no emite jugadas hasta que tiene ambas.
